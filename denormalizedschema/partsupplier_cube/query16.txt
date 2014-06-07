@@ -1,0 +1,37 @@
+prefix bif: <http://example.org/customfunction/>
+prefix qb:   <http://purl.org/linked-data/cube#>
+prefix qb4o: <http://publishing-multidimensional-data.googlecode.com/git/index.html#ref_qbplus_>
+prefix ltpch: <http://extbi.lab.aau.dk/ontology/ltpch/>
+
+select
+  ?p_brand
+  ?p_type
+  ?p_size
+  ((count(distinct ?supp)) as ?supplier_cnt)
+where {
+    ?ps qb:dataSet ltpch:partSupplierCube ;
+        ltpch:supplier_supplier_suppkey ?supp ;
+        ltpch:part_part_brand ?p_brand ;
+        ltpch:part_part_type ?p_type ;
+        ltpch:part_part_size ?p_size .    
+    FILTER (
+      (!(REGEX(?p_brand , "%BRAND%","i")) &&
+      !(REGEX(?p_type, "^%TYPE%")) &&
+      (?p_size in (%SIZE1%, %SIZE2%, %SIZE3%, %SIZE4%, %SIZE5%, %SIZE6%, %SIZE7%, %SIZE8%))
+    )
+    FILTER NOT EXISTS {
+       ?ps2 ltpch:supplier_supplier_suppkey ?supp ;
+            ltpch:supplier_supplier_comment ?badcomment .
+       FILTER (REGEX(?badcomment, "Customer.*Complaints") )
+    }
+  }
+group by
+  ?p_brand
+  ?p_type
+  ?p_size
+order by
+  desc ((count(distinct ?supp)))
+  ?p_brand
+  ?p_type
+  ?p_size
+

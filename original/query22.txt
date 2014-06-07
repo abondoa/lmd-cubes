@@ -1,0 +1,28 @@
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://lod2.eu/schemas/rdfh#>
+
+select
+  (bif:LEFT (?c_phone, 2)) as ?cntrycode,
+  (count (1)) as ?numcust,
+  sum (?c_acctbal) as ?totacctbal
+where {
+    ?cust a ltpch:customer ;
+      ltpch:c_acctbal ?c_acctbal ;
+      ltpch:c_phone ?c_phone .
+    filter (
+      bif:LEFT (?c_phone, 2) in (%COUNTRY_CODE_SET%) &&
+      (?c_acctbal >
+        ( select (avg (?c_acctbal2)) as ?acctbal_threshold
+          where
+            {
+              ?cust2 a ltpch:customer ;
+                 ltpch:c_acctbal ?c_acctbal2 ;
+                 ltpch:c_phone ?c_phone2 .
+              filter ((?c_acctbal2 > 0.00) &&
+                bif:LEFT (?c_phone2, 2) in (%COUNTRY_CODE_SET%) )
+            } ) )
+    ) 
+    filter not exists { ?ord ltpch:o_has_customer ?cust }
+  }
+group by (bif:LEFT (?c_phone, 2))
+order by (bif:LEFT (?c_phone, 2))

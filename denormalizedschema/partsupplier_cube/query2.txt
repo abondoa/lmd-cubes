@@ -1,0 +1,54 @@
+prefix bif: <http://example.org/customfunction/>
+prefix qb:   <http://purl.org/linked-data/cube#>
+prefix qb4o: <http://publishing-multidimensional-data.googlecode.com/git/index.html#ref_qbplus_>
+prefix ltpch: <http://extbi.lab.aau.dk/ontology/ltpch/>
+
+select
+  ?s_acctbal
+  ?s_name
+  ?nation_name
+  ?p_partkey
+  ?p_mfgr
+  ?s_address
+  ?s_phone
+  ?s_comment
+where 
+{
+  ?ps qb:dataSet ltpch:partSupplierCube ;
+      ltpch:ps_supplycost ?minsc ;
+      ltpch:supplier_supplier_acctbal ?s_acctbal ;
+      ltpch:supplier_supplier_name ?s_name ;
+      ltpch:supplier_supplier_address ?s_address ;
+      ltpch:supplier_supplier_phone ?s_phone ;
+      ltpch:supplier_supplier_comment ?s_comment ;
+      ltpch:supplier_nation_name ?nation_name ;
+      ltpch:supplier_region_name ?r_name ;
+      ltpch:part_part_partkey ?p_partkey ;
+      ltpch:part_part_mfgr ?p_mfgr ;
+      ltpch:part_part_size ?p_size ;
+      ltpch:part_part_type ?p_type .
+  filter (REGEX(?p_type, "%TYPE%$") && ?p_size = %SIZE%) .
+  { 
+    select 
+      ?p_partkey 
+      ?r_name
+      (min(?s_cost) as ?minsc)
+    where 
+    {
+      ?ps2 qb:dataSet ltpch:partSupplierCube ;
+          ltpch:part_part_partkey ?p_partkey ;
+          ltpch:ps_supplycost ?s_cost ;
+          ltpch:supplier_region_name ?r_name . 
+      FILTER(?r_name = "%REGION%") .
+    }
+    group by 
+      ?p_partkey
+      ?r_name
+  } .
+}
+order by
+  desc (?s_acctbal)
+  ?nation_name
+  ?s_name
+  ?p_partkey
+limit 100

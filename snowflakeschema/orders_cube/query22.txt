@@ -1,0 +1,33 @@
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://extbi.lab.aau.dk/ontology/ltpch/>
+prefix qb: <http://purl.org/linked-data/cube#>
+
+
+
+select
+  ?cntrycode
+  ((count (1)) as ?numcust)
+  (sum (?c_acctbal) as ?totacctbal)
+where {
+    ?cust ltpch:c_acctbal ?c_acctbal ;
+          ltpch:c_phone ?c_phone .
+    {
+      select ((avg(?c_acctbal2)) as ?acctbal_threshold)
+      where
+      {
+        ?cust2 ltpch:c_acctbal ?c_acctbal2 ;
+           ltpch:c_phone ?c_phone2 .
+        filter ((?c_acctbal2 > 0.00) &&
+          substr(?c_phone2, 1,2) in (%COUNTRY_CODE_SET%) ) .
+      }
+    }
+    filter (
+      (substr(?c_phone, 1,2)) in (%COUNTRY_CODE_SET%) &&
+      (?c_acctbal > ?acctbal_threshold)
+    ) .
+    filter not exists { ?ord  qb:dataSet ltpch:ordersCube ; 
+                              ltpch:o_has_customer ?cust } .
+  }
+group by ((substr(?c_phone, 1,2)) as ?cntrycode )
+order by (substr(?c_phone, 1,2))
+

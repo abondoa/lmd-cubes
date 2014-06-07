@@ -1,0 +1,23 @@
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://lod2.eu/schemas/rdfh#>
+
+select
+  (sum(?l_lineextendedprice) / 7.0) as ?avg_yearly
+where {
+    ?li a ltpch:lineitem ;
+        ltpch:l_lineextendedprice ?l_lineextendedprice ;
+        ltpch:l_linequantity ?l_linequantity ;
+        ltpch:l_has_part ?part .
+    ?part ltpch:p_brand "%BRAND%" ;
+          ltpch:p_container "%CONTAINER%" .
+    filter (?l_linequantity < 
+      (
+        select (0.2 * avg(?l2_linequantity)) as ?threshold
+        where { 
+          ?li2  a ltpch:lineitem ;
+                ltpch:l_linequantity ?l2_linequantity ; 
+                ltpch:l_has_part ?part .
+        } 
+      ) 
+    ) 
+}

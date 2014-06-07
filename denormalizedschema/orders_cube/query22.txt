@@ -1,0 +1,37 @@
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://extbi.lab.aau.dk/ontology/ltpch/>
+prefix qb:   <http://purl.org/linked-data/cube#>
+prefix qb4o: <http://publishing-multidimensional-data.googlecode.com/git/index.html#ref_qbplus_>
+
+select
+  ?cntrycode
+  ((count (1)) as ?numcust)
+  (sum (?c_acctbal) as ?totacctbal)
+where 
+{
+  ?cust ltpch:customer_customer_acctbal ?c_acctbal ;
+        ltpch:customer_customer_phone ?c_phone .
+  {
+    select 
+      ((avg (?c_acctbal2)) as ?acctbal_threshold)
+    where
+    {
+      {
+        select distinct 
+          ?custkey2 ?c_acctbal2
+        where 
+        {
+          ?cust2 ltpch:customer_customer_custkey ?custkey2 ;
+                 ltpch:customer_customer_acctbal ?c_acctbal2 ;
+                 ltpch:customer_customer_phone ?c_phone2 .
+          FILTER ((?c_acctbal2 > 0.00) &&
+            SUBSTR(?c_phone2, 1, 2) in (%COUNTRY_CODE_SET%) ) .
+        }
+      }
+    } 
+  }
+  FILTER (SUBSTR(?c_phone, 1, 2) in (%COUNTRY_CODE_SET%) && ?c_acctbal > ?acctbal_threshold) .
+  FILTER not exists { ?cust qb:dataSet ltpch:ordersCube } .
+}
+group by ((SUBSTR(?c_phone, 1, 2)) as ?cntrycode)
+order by (SUBSTR(?c_phone, 1, 2))

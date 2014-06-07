@@ -1,0 +1,27 @@
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://lod2.eu/schemas/rdfh#>
+
+select
+  ?c_count,
+  count(1) as ?custdist
+where {
+    { select
+        ?c_custkey,
+        count (?ord) as ?c_count
+      where
+        {
+          ?cust a ltpch:customer ;
+                ltpch:c_custkey ?c_custkey .
+           optional {
+             ?ord ltpch:o_has_customer ?cust ;
+                  ltpch:o_comment ?o_comment .
+              filter (!(?o_comment like "%%WORD1%%%WORD2%%")) 
+          }
+        }
+    }
+  }
+group by
+  ?c_count
+order by
+  desc (count(1))
+  desc (?c_count)

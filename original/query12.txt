@@ -1,0 +1,31 @@
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://lod2.eu/schemas/rdfh#>
+
+select
+  ?l_shipmode,
+  sum (
+    bif:__or (
+      bif:equ (?o_orderpriority, "1-URGENT"),
+      bif:equ (?o_orderpriority, "2-HIGH") ) ) as ?high_line_count,
+  sum (1 -
+    bif:__or (
+      bif:equ (?o_orderpriority, "1-URGENT"),
+      bif:equ (?o_orderpriority, "2-HIGH") ) ) as ?low_line_count
+where  {
+    ?ord ltpch:o_orderpriority ?o_orderpriority .
+    ?li a ltpch:lineitem ;
+       ltpch:l_has_order ?ord ;
+       ltpch:l_commitdate ?l_commitdate ;
+       ltpch:l_receiptdate ?l_receiptdate ;
+       ltpch:l_shipmode ?l_shipmode ;
+       ltpch:l_shipdate ?l_shipdate .
+    filter (?l_shipmode in ("%SHIPMODE1%", "%SHIPMODE2%") &&
+      (?l_commitdate < ?l_receiptdate) &&
+      (?l_shipdate < ?l_commitdate) &&
+      (?l_receiptdate >= "%YEAR%-01-01"^^xsd:date) &&
+      (?l_receiptdate < bif:dateadd ("year", 1, "%YEAR%-01-01"^^xsd:date)) )
+  }
+group by
+  ?l_shipmode
+order by
+  ?l_shipmode

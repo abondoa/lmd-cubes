@@ -1,0 +1,43 @@
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://lod2.eu/schemas/rdfh#>
+
+select
+  ?c_custkey,
+  ?c_companyName,
+  (sum(?l_lineextendedprice * (1 - ?l_linediscount))) as ?revenue,
+  ?c_acctbal,
+  ?nation,
+  ?c_address,
+  ?c_phone,
+  ?c_comment
+where  {
+  ?li ltpch:l_returnflag "R" ;
+      ltpch:l_has_order ?ord ;
+      ltpch:l_lineextendedprice ?l_lineextendedprice ;
+      ltpch:l_linediscount ?l_linediscount .
+  ?ord ltpch:o_has_customer ?cust ;
+       ltpch:o_orderdate ?o_orderdate .
+  ?cust a ltpch:customer ;
+      ltpch:c_address ?c_address ;
+      ltpch:c_phone ?c_phone ;
+      ltpch:c_comment ?c_comment ;
+      ltpch:c_acctbal ?c_acctbal ;
+      ltpch:c_custkey ?c_custkey ;
+      ltpch:c_has_nation ?c_nation ;
+      ltpch:c_name ?c_companyName .
+   ?c_nation ltpch:n_name ?nation .
+   filter ((?o_orderdate >= "%MONTH%-01"^^xsd:date) &&
+      (?o_orderdate < bif:dateadd ("month", 3, "%MONTH%-01"^^xsd:date)) 
+   ) 
+}
+group by
+  ?c_custkey
+  ?c_companyName
+  ?c_acctbal
+  ?nation
+  ?c_address
+  ?c_phone
+  ?c_comment
+order by
+  desc (sum(?l_lineextendedprice * (1 - ?l_linediscount)))
+limit 20

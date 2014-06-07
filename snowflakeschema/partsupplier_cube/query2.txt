@@ -1,0 +1,59 @@
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://extbi.lab.aau.dk/ontology/ltpch/>
+prefix qb: <http://purl.org/linked-data/cube#>
+
+select
+  ?s_acctbal
+  ?s_name
+  ?nation_name
+  ?p_partkey
+  ?p_mfgr
+  ?s_address
+  ?s_phone
+  ?s_comment
+where 
+{
+  ?ps qb:dataSet ltpch:partSupplierCube ;
+      ltpch:ps_has_supplier ?supp;
+      ltpch:ps_has_part ?part ;
+      ltpch:ps_supplycost ?minsc .
+  ?supp ltpch:s_acctbal ?s_acctbal ;
+        ltpch:s_name ?s_name ;
+        ltpch:s_has_nation ?s_nation ;
+        ltpch:s_address ?s_address ;
+        ltpch:s_phone ?s_phone ;
+        ltpch:s_comment ?s_comment .
+  ?s_nation ltpch:n_name ?nation_name ;
+            ltpch:n_has_region ?s_region .
+  ?part ltpch:p_partkey ?p_partkey ;
+        ltpch:p_mfgr ?p_mfgr ;
+        ltpch:p_size ?p_size ;
+        ltpch:p_type ?p_type .
+  filter (REGEX(?p_type, "%TYPE%$" ) && ?p_size = %SIZE%) .
+  { 
+    select 
+      ?part
+      (?m_region as ?s_region)
+      (min(?s_cost) as ?minsc)
+    where 
+    {
+        ?ps a ltpch:partsupp ;
+            ltpch:ps_has_part ?part ;
+            ltpch:ps_has_supplier ?minsupp ;
+            ltpch:ps_supplycost ?s_cost .
+        ?minsupp ltpch:s_has_nation ?m_nation .
+        ?m_nation ltpch:n_has_region ?m_region .
+        ?m_region ltpch:r_name ?m_region_name .
+        filter (?m_region_name = "%REGION%") .
+    }
+    group by
+      ?part
+      ?m_region
+  }
+}
+order by
+  desc (?s_acctbal)
+  ?nation_name
+  ?s_name
+  ?p_partkey
+limit 100

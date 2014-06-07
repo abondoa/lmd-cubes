@@ -1,0 +1,39 @@
+
+
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://lod2.eu/schemas/rdfh#>
+
+select
+  ?s_name,
+  ?s_address
+where
+  {
+    ?supp ltpch:s_name ?s_name ;
+                  ltpch:s_address ?s_address .
+{ select distinct ?supp where {
+  ?supp ltpch:s_has_nation ?s_nation .
+		              ?s_nation ltpch:n_name "%NATION%" .
+            ?big_ps a ltpch:partsupp ;
+                    ltpch:ps_has_part ?part ;
+                    ltpch:ps_availqty ?big_ps_availqty ;
+                    ltpch:ps_has_supplier ?supp .
+?part ltpch:p_name ?p_name . filter (?p_name like "%COLOR%%") .
+#		    		  filter (bif:exists ((select (1) where { ?part ltpch:p_name ?p_name . filter (?p_name like "%forest%") }))) .
+            filter (
+              ?big_ps_availqty > (
+                  select (0.5 * sum(?l_linequantity)) as ?qty_threshold
+                  where
+                    {
+                      ?li a ltpch:lineitem ;
+                          ltpch:l_shipdate ?l_shipdate ;
+                          ltpch:l_has_part ?part ;
+                          ltpch:l_linequantity ?l_linequantity ;
+                          ltpch:l_has_supplier ?supp .
+                      filter ((?l_shipdate >= "1994-01-01"^^xsd:date) &&
+                        (?l_shipdate < bif:dateadd ("year", 1, "1994-01-01"^^xsd:date)) 
+                      )
+                    } 
+              ))
+  } }}
+order by ?s_name
+

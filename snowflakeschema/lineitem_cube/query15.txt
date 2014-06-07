@@ -1,0 +1,58 @@
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://extbi.lab.aau.dk/ontology/ltpch/>
+prefix qb: <http://purl.org/linked-data/cube#>
+
+select
+  ?s_suppkey
+  ?s_name
+  ?s_address
+  ?s_phone
+  ?total_revenue
+where  {
+    ?supplier a ltpch:supplier ;
+        ltpch:s_suppkey ?s_suppkey ;
+        ltpch:s_name ?s_name ;
+        ltpch:s_address ?s_address ;
+        ltpch:s_phone ?s_phone .
+    { select
+          ?supplier
+          (sum(?l_extendedprice * (1 - ?l_discount)) as ?total_revenue)
+       where {
+            ?li1 qb:dataSet ltpch:lineitemCube ;
+                 ltpch:l_shipdate ?l_shipdate ;
+                 ltpch:l_lineextendedprice ?l_extendedprice ;
+                 ltpch:l_linediscount ?l_discount ;
+                 ltpch:l_has_partsupplier ?ps1 .
+            ?ps1 ltpch:ps_has_supplier ?supplier .
+            filter (
+                ?l_shipdate >= "%MONTH%-01"^^xsd:date &&
+                ?l_shipdate < bif:dateadd ("month", 3, "%MONTH%-01"^^xsd:date) )
+        }
+      group by
+        ?supplier
+      }
+      { select (max (?l2_total_revenue) as ?maxtotal)
+        where {
+            { select
+                  ?supplier2
+                  (sum(?l2_extendedprice * (1 - ?l2_discount)) as ?l2_total_revenue)
+               where {
+                    ?li2 qb:dataSet ltpch:lineitemCube ;
+                      ltpch:l_shipdate ?l2_shipdate ;
+                      ltpch:l_lineextendedprice ?l2_extendedprice ;
+                      ltpch:l_linediscount ?l2_discount ;
+                       ltpch:l_has_partsupplier ?ps2 .
+                  ?ps2 ltpch:ps_has_supplier ?supplier2 .
+                    filter (
+                        ?l2_shipdate >= "%MONTH%-01"^^xsd:date &&
+                        ?l2_shipdate < bif:dateadd ("month", 3, "%MONTH%-01"^^xsd:date) )
+               }
+               group by 
+                ?supplier2
+            }
+        }
+    }
+    filter (?total_revenue = ?maxtotal)
+}
+order by
+  ?supplier

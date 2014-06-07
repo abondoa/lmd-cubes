@@ -1,0 +1,35 @@
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://extbi.lab.aau.dk/ontology/ltpch/>
+prefix qb:   <http://purl.org/linked-data/cube#>
+prefix qb4o: <http://publishing-multidimensional-data.googlecode.com/git/index.html#ref_qbplus_>
+
+select
+  ?o_orderpriority
+  (count(1) as ?order_count)
+where  
+{
+  {
+    select distinct
+      ?o_orderpriority
+      ?orderkey
+    where 
+    {
+      ?li ltpch:order_order_orderpriority ?o_orderpriority ;
+           ltpch:order_order_orderdate ?o_orderdate ;
+           ltpch:order_order_orderkey ?orderkey ;
+           ltpch:l_commitdate ?l_commitdate ;
+           ltpch:l_receiptdate ?l_receiptdate .
+      filter ( 
+        (?l_commitdate < ?l_receiptdate) &&
+        (?o_orderdate >= "%MONTH%-01"^^xsd:date) &&
+        (?o_orderdate < bif:dateadd ("month", 3, "%MONTH%-01"^^xsd:date))
+      )
+    }
+  }
+}
+group by
+  ?o_orderpriority
+order by
+  ?o_orderpriority
+
+

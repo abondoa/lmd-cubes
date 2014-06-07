@@ -1,0 +1,42 @@
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://lod2.eu/schemas/rdfh#>
+
+select
+   ?c_name
+   ?c_custkey
+   ?o_orderkey
+   ?o_orderdate
+   ?o_ordertotalprice
+   sum(?l_linequantity)
+where {
+    ?cust a ltpch:customer ;
+          ltpch:c_custkey ?c_custkey ;
+          ltpch:c_name ?c_name .
+    ?ord a ltpch:orders ;
+         ltpch:o_orderkey ?o_orderkey ;
+         ltpch:o_orderdate ?o_orderdate ;
+         ltpch:o_ordertotalprice ?o_ordertotalprice ;
+         ltpch:o_has_customer ?cust .
+    ?li a ltpch:lineitem ;
+        ltpch:l_linequantity ?l_linequantity ;
+        ltpch:l_has_order ?ord .
+    { select 
+         ?sum_order sum (?l2_linequantity) as ?sum_q
+       where {
+           ?li2 a ltpch:lineitem ;
+                ltpch:l_linequantity ?l2_linequantity ;
+                ltpch:l_has_order ?sum_order .
+       }
+    } .
+    filter (?sum_order = ?ord and ?sum_q > %QUANTITY%)
+}
+group by
+   ?c_name
+   ?c_custkey
+   ?o_orderkey
+   ?o_orderdate
+   ?o_ordertotalprice
+order by
+  desc (?o_ordertotalprice)
+  ?o_orderdate
+limit 100

@@ -1,0 +1,39 @@
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://extbi.lab.aau.dk/ontology/ltpch/>
+prefix qb:   <http://purl.org/linked-data/cube#>
+prefix qb4o: <http://publishing-multidimensional-data.googlecode.com/git/index.html#ref_qbplus_>
+
+select ?supp_nation 
+?cust_nation 
+?li_year
+(sum (?value) as ?revenue)
+where {
+  {
+    select
+      ?supp_nation
+      ?cust_nation
+      ((YEAR (?l_shipdate)) as ?li_year)
+      ((?l_lineextendedprice * (1 - ?l_linediscount)) as ?value)
+    where {
+      ?li qb:dataSet ltpch:lineitemCube ;
+        ltpch:l_shipdate ?l_shipdate ;
+        ltpch:l_lineextendedprice ?l_lineextendedprice ;
+        ltpch:l_linediscount ?l_linediscount ;
+        ltpch:order_nation_name ?cust_nation ;
+        ltpch:partsupplier_nation_name ?supp_nation .
+      filter ((
+        (?cust_nation = "%NATION1%" && ?supp_nation = "%NATION2%") ||
+        (?cust_nation = "%NATION2%" && ?supp_nation = "%NATION1%") ) &&
+        (?l_shipdate >= "1995-01-01"^^xsd:date) &&
+        (?l_shipdate <= "1996-12-31"^^xsd:date) )  
+      } 
+   } 
+}
+group by
+  ?supp_nation
+  ?cust_nation
+  ?li_year
+order by
+  ?supp_nation
+  ?cust_nation
+  ?li_year

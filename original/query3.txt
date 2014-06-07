@@ -1,0 +1,32 @@
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://lod2.eu/schemas/rdfh#>
+
+select
+  ?o_orderkey,
+  sum(?l_lineextendedprice*(1 - ?l_linediscount)) as ?revenue,
+  ?o_orderdate,
+  ?o_shippriority
+where  {
+  ?li a ltpch:lineitem ;
+	ltpch:l_lineextendedprice ?l_lineextendedprice ;
+    ltpch:l_linediscount ?l_linediscount ;
+    ltpch:l_has_order ?ord ;
+    ltpch:l_shipdate ?l_shipdate .
+  ?ord a ltpch:orders ;
+	ltpch:o_orderdate ?o_orderdate ;
+    ltpch:o_shippriority ?o_shippriority ;
+    ltpch:o_orderkey ?o_orderkey ;
+    ltpch:o_has_customer ?cust .
+  ?cust a ltpch:customer ;
+    ltpch:c_mktsegment "%SEGMENT%" .
+  filter ((?o_orderdate < "%DATE%"^^xsd:date) &&
+    (?l_shipdate > "%DATE%"^^xsd:date) ) 
+}
+group by
+  ?o_orderkey
+  ?o_orderdate
+  ?o_shippriority
+order by
+  desc (sum (?l_lineextendedprice * (1 - ?l_linediscount)))
+  ?o_orderdate
+limit 10

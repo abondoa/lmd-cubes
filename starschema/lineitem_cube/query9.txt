@@ -1,0 +1,36 @@
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://extbi.lab.aau.dk/ontology/ltpch/>
+prefix qb:   <http://purl.org/linked-data/cube#>
+prefix qb4o: <http://publishing-multidimensional-data.googlecode.com/git/index.html#ref_qbplus_>
+
+select
+  ?nation
+  ?o_year
+  (sum(?amount) as ?sum_profit)
+where {
+  { select
+      ?nation
+      ((YEAR (?o_orderdate)) as ?o_year)
+      ((?l_lineextendedprice * (1 - ?l_linediscount)
+       - ?ps_supplycost * ?l_linequantity) as ?amount)
+    where {
+      ?li qb:dataSet ltpch:lineitemCube ;
+          ltpch:l_has_order ?ord ;
+          ltpch:l_has_partsupplier ?ps ;
+          ltpch:l_linequantity ?l_linequantity ;
+          ltpch:l_lineextendedprice ?l_lineextendedprice ;
+          ltpch:l_linediscount ?l_linediscount .
+      ?ps ltpch:nation_name ?nation .
+      ?ord ltpch:order_orderdate ?o_orderdate .
+      ?ps ltpch:partsupplier_supplycost ?ps_supplycost .
+      ?ps ltpch:part_name ?p_name .
+      filter (REGEX (?p_name,"%COLOR%")) 
+    } 
+  } 
+}
+group by
+  ?nation
+  ?o_year
+order by
+  ?nation
+  desc (?o_year)

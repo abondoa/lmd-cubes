@@ -1,0 +1,36 @@
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://extbi.lab.aau.dk/ontology/ltpch/>
+prefix qb: <http://purl.org/linked-data/cube#>
+
+select
+  ?p_brand
+  ?p_type
+  ?p_size
+  ((count(distinct ?supp)) as ?supplier_cnt)
+where {
+    ?ps qb:dataSet ltpch:partSupplierCube ;
+        ltpch:ps_has_part ?part ;
+        ltpch:ps_has_supplier ?supp .
+    ?part ltpch:p_brand ?p_brand ;
+        ltpch:p_type ?p_type ;
+        ltpch:p_size ?p_size .    
+    filter (
+      (?p_brand != "%BRAND%") &&
+      !( REGEX (?p_type,"^%TYPE%")) &&
+      (?p_size in (%SIZE1%, %SIZE2%, %SIZE3%, %SIZE4%, %SIZE5%, %SIZE6%, %SIZE7%, %SIZE8%))
+    ) .
+    filter NOT EXISTS {
+       ?supp ltpch:s_comment ?badcomment .
+       filter ( REGEX (?badcomment, "Customer.*Complaints") ) .
+    }
+  }
+group by
+  ?p_brand
+  ?p_type
+  ?p_size
+order by
+  desc ((count(distinct ?supp)))
+  ?p_brand
+  ?p_type
+  ?p_size
+

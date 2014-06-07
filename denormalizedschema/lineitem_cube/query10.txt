@@ -1,0 +1,42 @@
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://extbi.lab.aau.dk/ontology/ltpch/>
+prefix qb:   <http://purl.org/linked-data/cube#>
+prefix qb4o: <http://publishing-multidimensional-data.googlecode.com/git/index.html#ref_qbplus_>
+
+select
+  ?c_custkey
+  ?c_companyName
+  ((sum(?l_lineextendedprice * (1 - ?l_linediscount))) as ?revenue)
+  ?c_acctbal
+  ?nation
+  ?c_address
+  ?c_phone
+  ?c_comment
+where  {
+  ?li ltpch:l_returnflag ?l_returnflag ;
+      ltpch:l_lineextendedprice ?l_lineextendedprice ;
+      ltpch:l_linediscount ?l_linediscount ;
+      ltpch:order_order_orderdate ?o_orderdate ;
+      ltpch:order_customer_address ?c_address ;
+      ltpch:order_customer_phone ?c_phone ;
+      ltpch:order_customer_comment ?c_comment ;
+      ltpch:order_customer_acctbal ?c_acctbal ;
+      ltpch:order_customer_custkey ?c_custkey ;
+      ltpch:order_customer_name ?c_companyName ;
+      ltpch:order_nation_name ?nation .
+   filter ((?o_orderdate >= "%MONTH%-01"^^xsd:date) &&
+      (?o_orderdate < bif:dateadd ("month", 3, "%MONTH%-01"^^xsd:date) &&
+      (?l_returnflag = "R")) 
+   ) .
+}
+group by
+  ?c_custkey
+  ?c_companyName
+  ?c_acctbal
+  ?nation
+  ?c_address
+  ?c_phone
+  ?c_comment
+order by
+  desc (sum(?l_lineextendedprice * (1 - ?l_linediscount)))
+limit 20

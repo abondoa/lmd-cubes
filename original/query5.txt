@@ -1,0 +1,27 @@
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://lod2.eu/schemas/rdfh#>
+
+select
+  ?nation,
+  sum(?l_lineextendedprice * (1 - ?l_linediscount)) as ?revenue
+where  {
+   ?li a ltpch:lineitem ;
+       ltpch:l_has_order ?ord ;
+       ltpch:l_has_supplier ?supp ;
+       ltpch:l_lineextendedprice ?l_lineextendedprice ;
+       ltpch:l_linediscount ?l_linediscount .
+    ?ord ltpch:o_has_customer ?cust ;
+         ltpch:o_orderdate ?o_orderdate .
+	?supp ltpch:s_has_nation ?s_nation .
+    ?s_nation ltpch:n_has_region ?s_region ;
+              ltpch:n_name ?nation .
+    ?s_region ltpch:r_name "%REGION%" .
+    ?cust ltpch:c_has_nation ?c_nation.
+    filter ((?c_nation = ?s_nation) &&
+      (?o_orderdate >= "%YEAR%-01-01"^^xsd:date) &&
+      (?o_orderdate < bif:dateadd ("year", 1,"%YEAR%-01-01" ^^xsd:date)) ) 
+  }
+group by
+  ?nation
+order by
+  desc (sum(?l_lineextendedprice * (1 - ?l_linediscount)))

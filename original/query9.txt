@@ -1,0 +1,39 @@
+prefix bif: <http://example.org/customfunction/>
+prefix ltpch: <http://lod2.eu/schemas/rdfh#>
+
+select
+  ?nation,
+  ?o_year,
+  sum(?amount) as ?sum_profit
+where {
+  { select
+      ?nation,
+      (bif:year (?o_orderdate)) as ?o_year,
+      (?l_lineextendedprice * (1 - ?l_linediscount)
+       - ?ps_supplycost * ?l_linequantity) as ?amount
+    where {
+      ?li a ltpch:lineitem ;
+          ltpch:l_has_order ?ord ;
+          ltpch:l_has_supplier ?supp ;
+          ltpch:l_has_part ?part ;
+          ltpch:l_linequantity ?l_linequantity ;
+          ltpch:l_lineextendedprice ?l_lineextendedprice ;
+          ltpch:l_linediscount ?l_linediscount .
+      ?ps a ltpch:partsupp ;
+          ltpch:ps_has_part ?part ;
+          ltpch:ps_has_supplier ?supp .
+      ?supp ltpch:s_has_nation ?s_nation .
+      ?s_nation ltpch:n_name ?nation .
+      ?ord ltpch:o_orderdate ?o_orderdate .
+      ?ps ltpch:ps_supplycost ?ps_supplycost .
+      ?part ltpch:p_name ?p_name .
+      filter (?p_name like "%%COLOR%%") 
+    } 
+  } 
+}
+group by
+  ?nation
+  ?o_year
+order by
+  ?nation
+  desc (?o_year)
